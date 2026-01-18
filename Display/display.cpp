@@ -38,7 +38,13 @@ void DisplayModule::CreateWindowModule(HINSTANCE hInstance, int nCmdShow) {
 
     RegisterClassW(&wc);
 
-    RECT rect = {0, 0, CLIENT_SCREEN_WIDTH, CLIENT_SCREEN_HEIGHT};
+    RECT rect;
+    if(SHOW_ON_SCREEN_FLAG) {
+        rect = {0, 0, CLIENT_SCREEN_WIDTH, CLIENT_SCREEN_HEIGHT};
+    } else {
+        rect = {0, 0, MIN_CLIENT_SCREEN_WIDTH, MIN_CLIENT_SCREEN_HEIGHT};
+    }
+
     AdjustWindowRectEx(&rect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE, 0);
 
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
@@ -88,7 +94,12 @@ void DisplayModule::InitD2D() {
     D2D1_BITMAP_PROPERTIES bmpProps =
         D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
                                                  D2D1_ALPHA_MODE_IGNORE));
-    renderTarget->CreateBitmap(D2D1::SizeU(CLIENT_SCREEN_WIDTH, CLIENT_SCREEN_HEIGHT), bmpProps, &bitmap);
+    
+    if(SHOW_ON_SCREEN_FLAG) {
+        renderTarget->CreateBitmap(D2D1::SizeU(CLIENT_SCREEN_WIDTH, CLIENT_SCREEN_HEIGHT), bmpProps, &bitmap);
+    } else {
+        renderTarget->CreateBitmap(D2D1::SizeU(MIN_CLIENT_SCREEN_WIDTH, MIN_CLIENT_SCREEN_HEIGHT), bmpProps, &bitmap);
+    }
 }
 
 void DisplayModule::CleanupD2D() {
@@ -98,8 +109,13 @@ void DisplayModule::CleanupD2D() {
 }
 
 void DisplayModule::RenderFrame(UINT32* pixels) {
-    D2D1_RECT_U rect = {0, 0, (UINT32)CLIENT_SCREEN_WIDTH, (UINT32)CLIENT_SCREEN_HEIGHT};
-    this->bitmap->CopyFromMemory(&rect, pixels, CLIENT_SCREEN_WIDTH * 4);
+    if(SHOW_ON_SCREEN_FLAG) {
+        D2D1_RECT_U rect = {0, 0, (UINT32)CLIENT_SCREEN_WIDTH, (UINT32)CLIENT_SCREEN_HEIGHT};
+        this->bitmap->CopyFromMemory(&rect, pixels, CLIENT_SCREEN_WIDTH * 4);
+    } else {
+        D2D1_RECT_U rect = {0, 0, (UINT32)MIN_CLIENT_SCREEN_WIDTH, (UINT32)MIN_CLIENT_SCREEN_HEIGHT};
+        this->bitmap->CopyFromMemory(&rect, pixels, MIN_CLIENT_SCREEN_WIDTH * 4);
+    }
 
     this->renderTarget->BeginDraw();
     this->renderTarget->Clear(D2D1::ColorF(0, 0, 0));
