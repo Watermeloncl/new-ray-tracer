@@ -6,13 +6,17 @@
 #include <thread>
 
 #include "..\Display\display.h"
-#include "..\Objects\threadBuffer.h"
+#include "..\Resources\parser.h"
+#include "..\Objects\Special\threadBuffer.h"
+#include "..\Objects\Special\sceneInfo.h"
 #include "..\config.h"
 
 class SchedulerModule {
 public:
 private:
     DisplayModule* display = nullptr;
+    SceneInfo* sceneInfo = nullptr;
+    Parser* parser = nullptr;
 
     UINT32* screenPixels = nullptr;
     unsigned char* filePixels = nullptr;

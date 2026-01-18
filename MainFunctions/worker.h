@@ -1,7 +1,7 @@
 #ifndef MAIN_FUNCTIONS_WORKER_H_
 #define MAIN_FUNCTIONS_WORKER_H_
 
-#include "..\Objects\threadBuffer.h"
+#include "..\Objects\Special\threadBuffer.h"
 
 class Worker {
 public:

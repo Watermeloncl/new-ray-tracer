@@ -2,11 +2,12 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include <cstring>
 
 #include "scheduler.h"
 #include "..\Display\display.h"
-#include "..\Objects\threadBuffer.h"
+#include "..\Resources\parser.h"
+#include "..\Objects\Special\threadBuffer.h"
+#include "..\Objects\Special\sceneInfo.h"
 #include "..\MainFunctions\worker.h"
 #include "..\config.h"
 
@@ -16,6 +17,8 @@ using TimeStamp = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 SchedulerModule::SchedulerModule(HINSTANCE hInstance, int nCmdShow) {
     this->display = new DisplayModule(hInstance, nCmdShow);
+    this->sceneInfo = new SceneInfo();
+    this->parser = new Parser();
 }
 
 SchedulerModule::~SchedulerModule() {
@@ -32,6 +35,7 @@ SchedulerModule::~SchedulerModule() {
 void SchedulerModule::RunMainLoop() {
     this->PrepScreen();
     this->InitThreads();
+    this->parser->ParseInput(this->sceneInfo);
 
     TimeStamp lastTime = SchedClock::now();
     TimeStamp now = SchedClock::now();

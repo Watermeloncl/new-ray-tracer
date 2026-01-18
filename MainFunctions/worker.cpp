@@ -3,12 +3,12 @@
 #include <thread>
 
 #include "worker.h"
-#include "..\Objects\threadBuffer.h"
+#include "..\Objects\Special\threadBuffer.h"
 
 void Worker::ComputePixels(ThreadBuffer* buffer) {
     for(int i = 0; i < buffer->n; i++) {
 
-        
+
 
 
         buffer->data[buffer->writeIndex] = (unsigned char)0;

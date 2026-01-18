@@ -1,0 +1,25 @@
+Template Scene
+$ Sublevel
+Colors are in percent of max value
+# comment
+==============
+
+ViewDistance 5.0
+AmbientLight 0.1 0.1 0.1
+BackgroundColor 0.2 0.2 0.2
+
+DirectionalLight
+$ direction x y z
+$ LightColor r g b
+
+Object
+$ Type
+$ Stats
+
+Object
+- Sphere
+Center Radius
+Kd Ks Ka (add to 1.0)
+Od
+Os
+Kgls Refl Trans
