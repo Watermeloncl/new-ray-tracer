@@ -7,7 +7,7 @@ public:
     ~CollisionInfo();
 
     double t = 0;
-    double oIndex = 0;
+    int oIndex = 0;
 
     double cpx = 0;
     double cpy = 0;

@@ -9,7 +9,7 @@ public:
     ~DirectionalLight();
 
     double dx = 0;
-    double dy = 0;
+    double dy = -1.0;
     double dz = 0;
 
     double r = 0.2;

@@ -2,7 +2,9 @@
 #include <cmath>
 
 #include "mainFunctions.h"
+#include "..\MathUtilities\mathUtilities.h"
 #include "..\Objects\SceneObjects\sphere.h"
+#include "..\Objects\Lights\directionalLight.h"
 #include "..\Objects\Special\collisionInfo.h"
 #include "..\Objects\Special\sceneInfo.h"
 #include "..\config.h"
@@ -15,7 +17,7 @@ CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, dou
     //speed up by reducing multiplies?
 
     double lowestT = DBL_MAX;
-    double oIndex = -1;
+    int oIndex = -1;
 
     for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
         if(sceneInfo->sceneObjects[i]->type == ObjectType::SPHERE) {
@@ -78,11 +80,48 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
         return colors;
     }
 
+    double r = 0;
+    double g = 0;
+    double b = 0;
+
+    GenericObject* o = sceneInfo->sceneObjects[collisionInfo->oIndex];
+    if(o->type == ObjectType::SPHERE) {
+        Sphere* sphere = (Sphere*)o;
+
+        double nx = (collisionInfo->cpx - sphere->cx);
+        double ny = (collisionInfo->cpy - sphere->cy);
+        double nz = (collisionInfo->cpz - sphere->cz);
+        //or divide each by r.
+        MathUtilities::Normalize(nx, ny, nz);
+
+        double dn = MathUtilities::DotProduct(dx, dy, dz, nx, ny, nz);
+        double rx = dx - (2 * nx * dn);
+        double ry = dy - (2 * ny * dn);
+        double rz = dz - (2 * nz * dn);
+
+        r += sphere->material->ka * sceneInfo->ambR * sphere->material->odr;
+        g += sphere->material->ka * sceneInfo->ambG * sphere->material->odg;
+        b += sphere->material->ka * sceneInfo->ambB * sphere->material->odb;
+
+        for(int i = 0; i < sceneInfo->numLights; i++) {
+            if(sceneInfo->lights[i]->type == LightType::DIRECTIONAL) {
+                DirectionalLight* light = (DirectionalLight*)(sceneInfo->lights[i]);
+
+                r += light->r * ((sphere->material->kd * sphere->material->odr * MathUtilities::DotProduct(nx, ny, nz, light->dx, light->dy, light->dz)) +
+                                 (sphere->material->ks * sphere->material->osr * pow(MathUtilities::DotProduct(rx, ry, rz, -dx, -dy, -dz), sphere->material->kgls)));
+                g += light->g * ((sphere->material->kd * sphere->material->odg * MathUtilities::DotProduct(nx, ny, nz, light->dx, light->dy, light->dz)) +
+                                 (sphere->material->ks * sphere->material->osg * pow(MathUtilities::DotProduct(rx, ry, rz, -dx, -dy, -dz), sphere->material->kgls)));
+                b += light->b * ((sphere->material->kd * sphere->material->odb * MathUtilities::DotProduct(nx, ny, nz, light->dx, light->dy, light->dz)) +
+                                 (sphere->material->ks * sphere->material->osb * pow(MathUtilities::DotProduct(rx, ry, rz, -dx, -dy, -dz), sphere->material->kgls)));
+            }
+        }
+
+        //r += reflection and transparency
+    }
     
-    
-    colors->r = 0;
-    colors->g = 0.5490196;
-    colors->b = 0;
+    colors->r = r;
+    colors->g = g;
+    colors->b = b;
     return colors;
 }
 

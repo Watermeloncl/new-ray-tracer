@@ -8,6 +8,7 @@
 #include "..\Objects\Lights\directionalLight.h"
 #include "..\Objects\SceneObjects\sphere.h"
 #include "..\Objects\SceneObjects\material.h"
+#include "..\MathUtilities\mathUtilities.h"
 #include "..\config.h"
 
 Parser::Parser() {
@@ -48,6 +49,7 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
         } else if(cmd == "DirectionalLight") {
             DirectionalLight* light = new DirectionalLight();
             file >> light->dx >> light->dy >> light->dz >> light->r >> light->g >> light->b;
+            MathUtilities::Normalize(light->dx, light->dy, light->dz);
             sceneInfo->lights[sceneInfo->numLights] = light;
             (sceneInfo->numLights)++;
         } else if(cmd == "Object") {
