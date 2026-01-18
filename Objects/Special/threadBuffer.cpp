@@ -1,11 +1,14 @@
 #include <atomic>
 
 #include "threadBuffer.h"
+#include "sceneInfo.h"
 
-ThreadBuffer::ThreadBuffer(int startX, int startY, int n) {
+ThreadBuffer::ThreadBuffer(int startX, int startY, int n, SceneInfo* sceneInfo) {
     this->startX = startX;
     this->startY = startY;
     this->n = n;
+    this->sceneInfo = sceneInfo;
+
     this->data = new unsigned char[n * 3];
     this->readiness = new std::atomic<bool>[n * 3];
     for(int i = 0; i < (n * 3); i++) {
@@ -15,4 +18,5 @@ ThreadBuffer::ThreadBuffer(int startX, int startY, int n) {
 
 ThreadBuffer::~ThreadBuffer() {
     delete[] this->data;
+    //does not delete sceneInfo
 }

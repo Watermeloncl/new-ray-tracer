@@ -1,3 +1,4 @@
+WorldSpace 0.1
 ViewDistance 5.0
 AmbientLight 0.0 0.0 0.0
 BackgroundColor 0.2 0.2 0.2

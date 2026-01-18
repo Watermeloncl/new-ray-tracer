@@ -5,5 +5,5 @@ GenericObject::GenericObject() {
 }
 
 GenericObject::~GenericObject() {
-    
+    delete this->material;
 }

@@ -2,6 +2,7 @@
 #define OBJECTS_SPECIAL_THREAD_BUFFER_H_
 
 #include <atomic>
+#include "sceneInfo.h"
 
 struct ThreadBuffer {
 public:
@@ -16,9 +17,10 @@ public:
     int startY = 0;
     int n = 0;
 
-    ThreadBuffer(int startX, int startY, int n);
-    ~ThreadBuffer();
+    SceneInfo* sceneInfo = nullptr;
 
+    ThreadBuffer(int startX, int startY, int n, SceneInfo* sceneInfo);
+    ~ThreadBuffer();
 };
 
 #endif

@@ -3,7 +3,8 @@
 
 class MathUtilities {
 public:
-    
+    static unsigned char ColorAmp(double percent);
+    static void Normalize(double& dx, double& dy, double& dz);
 private:
     MathUtilities() = default;
 };

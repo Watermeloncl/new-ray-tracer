@@ -10,6 +10,7 @@ private:
     ID2D1HwndRenderTarget* renderTarget = nullptr;
     ID2D1Bitmap* bitmap = nullptr;
     HWND hwnd = NULL;
+    D2D1_MATRIX_3X2_F flipTransform;
 
 public:
     DisplayModule(HINSTANCE hInstance, int nCmdShow);

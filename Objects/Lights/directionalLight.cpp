@@ -1,9 +1,10 @@
 #include <iostream>
 
 #include "directionalLight.h"
+#include "..\..\config.h"
 
 DirectionalLight::DirectionalLight() {
-
+    this->type = LightType::DIRECTIONAL;
 }
 
 DirectionalLight::~DirectionalLight() {

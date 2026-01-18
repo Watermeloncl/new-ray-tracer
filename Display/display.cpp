@@ -97,8 +97,10 @@ void DisplayModule::InitD2D() {
     
     if(SHOW_ON_SCREEN_FLAG) {
         renderTarget->CreateBitmap(D2D1::SizeU(CLIENT_SCREEN_WIDTH, CLIENT_SCREEN_HEIGHT), bmpProps, &bitmap);
+        this->flipTransform = D2D1::Matrix3x2F::Scale(1.0f, -1.0f) * D2D1::Matrix3x2F::Translation(0, CLIENT_SCREEN_HEIGHT);
     } else {
         renderTarget->CreateBitmap(D2D1::SizeU(MIN_CLIENT_SCREEN_WIDTH, MIN_CLIENT_SCREEN_HEIGHT), bmpProps, &bitmap);
+        this->flipTransform = D2D1::Matrix3x2F::Scale(1.0f, -1.0f) * D2D1::Matrix3x2F::Translation(0, MIN_CLIENT_SCREEN_HEIGHT);
     }
 }
 
@@ -119,7 +121,9 @@ void DisplayModule::RenderFrame(UINT32* pixels) {
 
     this->renderTarget->BeginDraw();
     this->renderTarget->Clear(D2D1::ColorF(0, 0, 0));
+    this->renderTarget->SetTransform(this->flipTransform);
     this->renderTarget->DrawBitmap(this->bitmap);
+    this->renderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
     this->renderTarget->EndDraw(); // BLOCKS for VSync
 }
 

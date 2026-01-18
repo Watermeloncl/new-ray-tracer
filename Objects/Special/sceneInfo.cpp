@@ -18,12 +18,21 @@ SceneInfo::SceneInfo() {
 }
 
 SceneInfo::~SceneInfo() {
-    
+    for(int i = 0; i < numLights; i++) {
+        delete this->lights[i];
+    }
+    delete[] this->lights;
+
+    for(int i = 0; i < numSceneObjects; i++) {
+        delete this->sceneObjects[i];
+    }
+    delete[] this->sceneObjects;
 }
 
 void SceneInfo::Print() {
     std::cout << "Scene info" << std::endl;
-    std::cout << "view: " << viewDistance << std::endl;
+    std::cout << "view: " << worldSpace << " "
+              << viewDistance << std::endl;
     std::cout << "amb/back: "
               << ambR << " "
               << ambG << " "

@@ -37,7 +37,9 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
         std::string cmd;
         ss >> cmd;
 
-        if(cmd == "ViewDistance") {
+        if(cmd == "WorldSpace") {
+            ss >> sceneInfo->worldSpace;
+        } else if(cmd == "ViewDistance") {
             ss >> sceneInfo->viewDistance;
         } else if(cmd == "AmbientLight") {
             ss >> sceneInfo->ambR >> sceneInfo->ambG >> sceneInfo->ambB;

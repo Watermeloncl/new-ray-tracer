@@ -3,7 +3,7 @@
 #include "sphere.h"
 
 Sphere::Sphere() {
-
+    this->type = ObjectType::SPHERE;
 }
 
 Sphere::~Sphere() {

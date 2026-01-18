@@ -8,11 +8,11 @@ public:
     Sphere();
     ~Sphere();
 
-    float cx = 0;
-    float cy = 0;
-    float cz = 0;
+    double cx = 0;
+    double cy = 0;
+    double cz = 0;
 
-    float r = 1.0;
+    double r = 1.0;
 
     void Print();
 };

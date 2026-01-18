@@ -15,6 +15,7 @@ public:
     int numLights = 0;
     int numSceneObjects = 0;
 
+    double worldSpace = 0.1;
     double viewDistance = 5.0;
     
     double ambR = 0.1;

@@ -30,12 +30,15 @@ SchedulerModule::~SchedulerModule() {
             t.join();
         }
     }
+
+    delete this->parser;
+    delete this->sceneInfo;
 }
 
 void SchedulerModule::RunMainLoop() {
+    this->parser->ParseInput(this->sceneInfo);
     this->PrepScreen();
     this->InitThreads();
-    this->parser->ParseInput(this->sceneInfo);
 
     TimeStamp lastTime = SchedClock::now();
     TimeStamp now = SchedClock::now();
@@ -106,7 +109,7 @@ void SchedulerModule::InitThreads() {
 
     for(int i = 0; i < NUM_WORKER_THREADS; i++) {
         startY = (n * i) / CLIENT_SCREEN_WIDTH;
-        ThreadBuffer* buffer = new ThreadBuffer(0, startY, n);
+        ThreadBuffer* buffer = new ThreadBuffer(0, startY, n, this->sceneInfo);
         this->buffers[i] = buffer;
 
         this->workers.push_back(std::thread(Worker::ComputePixels, buffer));
