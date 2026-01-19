@@ -71,4 +71,34 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
     file.close();
 
     sceneInfo->Print();
+    this->AddPrecomputes(sceneInfo);
+}
+
+void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
+    Material* temp;
+
+    for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
+        temp = sceneInfo->sceneObjects[i]->material;
+        temp->ar = sceneInfo->ambR * temp->ka * temp->odr;
+        temp->ag = sceneInfo->ambG * temp->ka * temp->odg;
+        temp->ab = sceneInfo->ambB * temp->ka * temp->odb;
+        temp->kdodr = temp->kd * temp->odr;
+        temp->kdodg = temp->kd * temp->odg;
+        temp->kdodb = temp->kd * temp->odb;
+        temp->ksosr = temp->ks * temp->osr;
+        temp->ksosg = temp->ks * temp->osg;
+        temp->ksosb = temp->ks * temp->osb;
+    }
+
+    Sphere* sphere;
+    for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
+        if(sceneInfo->sceneObjects[i]->type == ObjectType::SPHERE) {
+            sphere = (Sphere*)(sceneInfo->sceneObjects[i]);
+
+            sphere->cxcx = (sphere->cx)*(sphere->cx);
+            sphere->cycy = (sphere->cy)*(sphere->cy);
+            sphere->czcz = (sphere->cz)*(sphere->cz);
+            sphere->rr = (sphere->r)*(sphere->r);
+        }
+    }
 }

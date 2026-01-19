@@ -6,6 +6,7 @@ public:
     Material();
     ~Material();
 
+    // Do we need K or od or os?
     double kd = 0;
     double ks = 0;
     double ka = 0;
@@ -21,6 +22,19 @@ public:
     double kgls = 4.0;
     double refl = 0.0;
     double trans = 0.0;
+    
+    // speed up values
+    double ar = 0;
+    double ag = 0;
+    double ab = 0;
+
+    double kdodr = 0;
+    double kdodg = 0;
+    double kdodb = 0;
+    
+    double ksosr = 0;
+    double ksosg = 0;
+    double ksosb = 0;
 
     void Print();
 };

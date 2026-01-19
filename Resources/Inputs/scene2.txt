@@ -1,0 +1,39 @@
+WorldSpace 0.15
+ViewDistance 5.0
+
+AmbientLight 0.0 0.0 0.0
+BackgroundColor 0.2 0.2 0.2
+
+DirectionalLight
+0.0 -1.0 0.0
+1.0 1.0 1.0
+
+# reflective sphere
+Object
+Sphere
+0.0 0.3 -1.0 0.25
+0.0 0.1 0.1
+0.75 0.75 0.75
+1.0 1.0 1.0
+10.0 .9 0.0
+
+# blue triangle
+Object
+Polygon
+0.0 -0.7 -0.5
+1.0 0.4 -1.0
+0.0 -0.7 -1.5
+0.9 1.0 0.1
+0.0 0.0 1.0
+1.0 1.0 1.0
+4.0 0.0 0.0
+
+# yellow triangle
+Triangle
+0.0 -0.7 -0.5
+0.0 -0.7 -1.5
+-1.0 0.4 -1.0
+0.9 1.0 0.1
+1.0 1.0 0.0
+1.0 1.0 1.0
+4.0 0.0 0.0

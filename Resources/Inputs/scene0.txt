@@ -17,9 +17,21 @@ $ Type
 $ Stats
 
 Object
-- Sphere
+Sphere
 Center Radius
 Kd Ks Ka (add to 1.0)
+Od
+Os
+Kgls Refl Trans
+
+Object
+Polygon numPoints
+point
+point
+...
+...
+point
+Kd Ks Ka
 Od
 Os
 Kgls Refl Trans

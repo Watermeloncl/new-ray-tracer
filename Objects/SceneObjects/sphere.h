@@ -13,6 +13,12 @@ public:
     double cz = 0;
 
     double r = 1.0;
+    
+    // speed up values
+    double cxcx = 0;
+    double cycy = 0;
+    double czcz = 0;
+    double rr = 1;
 
     void Print();
 };

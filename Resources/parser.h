@@ -9,6 +9,7 @@ public:
     ~Parser();
 
     void ParseInput(SceneInfo* sceneInfo);
+    void AddPrecomputes(SceneInfo* sceneInfo);
 };
 
 #endif
