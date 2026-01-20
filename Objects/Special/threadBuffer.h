@@ -2,6 +2,8 @@
 #define OBJECTS_SPECIAL_THREAD_BUFFER_H_
 
 #include <atomic>
+#include <stack>
+
 #include "sceneInfo.h"
 
 struct ThreadBuffer {
@@ -12,6 +14,8 @@ public:
     std::atomic<bool> finished = false;
     unsigned char* volatile data = nullptr;
     std::atomic<bool>* volatile readiness = nullptr;
+
+    std::stack<double>* threadStartNitStack = nullptr;
 
     int startX = 0;
     int startY = 0;

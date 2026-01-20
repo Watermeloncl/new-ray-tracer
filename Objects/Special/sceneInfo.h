@@ -1,6 +1,8 @@
 #ifndef OBJECTS_SPECIAL_SCENE_INFO_H_
 #define OBJECTS_SPECIAL_SCENE_INFO_H_
 
+#include <stack>
+
 #include "..\Lights\genericLight.h"
 #include "..\SceneObjects\genericObject.h"
 
@@ -11,6 +13,7 @@ public:
 
     GenericLight** lights = nullptr;
     GenericObject** sceneObjects = nullptr;
+    std::stack<double>* startingStack = nullptr;
 
     int numLights = 0;
     int numSceneObjects = 0;

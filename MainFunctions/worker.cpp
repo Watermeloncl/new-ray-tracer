@@ -36,7 +36,7 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
 
         MathUtilities::Normalize(dx, dy, dz);
         CollisionInfo* collisionInfo = MainFunctions::FindCollision(ox, oy, oz, dx, dy, dz, sceneInfo);
-        ColorInfo* colorInfo = MainFunctions::CalcColor(dx, dy, dz, collisionInfo, sceneInfo);
+        ColorInfo* colorInfo = MainFunctions::CalcColor(dx, dy, dz, collisionInfo, sceneInfo, buffer->threadStartNitStack);
 
         buffer->data[buffer->writeIndex] = MathUtilities::ColorAmp(colorInfo->r);
         buffer->data[buffer->writeIndex + 1] = MathUtilities::ColorAmp(colorInfo->g);

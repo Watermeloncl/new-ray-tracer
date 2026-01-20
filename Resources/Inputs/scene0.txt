@@ -22,10 +22,10 @@ Center Radius
 Kd Ks Ka (add to 1.0)
 Od
 Os
-Kgls Refl Trans
+Kgls Refl Trans Nit
 
 Object
-Polygon numPoints
+Polygon numPoints (3+, clockwise)
 point
 point
 ...

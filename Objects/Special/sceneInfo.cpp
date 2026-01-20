@@ -27,6 +27,7 @@ SceneInfo::~SceneInfo() {
         delete this->sceneObjects[i];
     }
     delete[] this->sceneObjects;
+    delete this->startingStack;
 }
 
 void SceneInfo::Print() {

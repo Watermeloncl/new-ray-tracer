@@ -9,6 +9,7 @@
 #include "..\Objects\SceneObjects\sphere.h"
 #include "..\Objects\SceneObjects\material.h"
 #include "..\MathUtilities\mathUtilities.h"
+#include "..\MainFunctions\mainFunctions.h"
 #include "..\config.h"
 
 Parser::Parser() {
@@ -60,7 +61,11 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
                 Sphere* sphere = new Sphere();
                 Material* mat = new Material();
                 file >> sphere->cx >> sphere->cy >> sphere->cz >> sphere->r;
-                file >> mat->kd >> mat->ks >> mat->ka >> mat->odr >> mat->odg >> mat->odb >> mat->osr >> mat->osg >> mat->osb >> mat->kgls >> mat->refl >> mat->trans;
+                file >> mat->kd >> mat->ks >> mat->ka >> mat->odr >> mat->odg >> mat->odb >> mat->osr >> mat->osg >> mat->osb >> mat->kgls >> mat->refl >> mat->trans >> mat->nit;
+                if(mat->nit <= 0) {
+                    std::cout << "nit 0 or below not allowed!" << std::endl;
+                    exit(1);
+                }
 
                 sphere->material = mat;
                 sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = sphere;
@@ -72,6 +77,7 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
 
     sceneInfo->Print();
     this->AddPrecomputes(sceneInfo);
+    MainFunctions::InitStartingStack(sceneInfo);
 }
 
 void Parser::AddPrecomputes(SceneInfo* sceneInfo) {

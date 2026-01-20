@@ -24,5 +24,6 @@ void Material::Print() {
               << kgls << " "
               << refl << " "
               << trans << " "
+              << nit << " "
               << std::endl;
 }

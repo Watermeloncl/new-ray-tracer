@@ -21,6 +21,7 @@ public:
     double rr = 1;
 
     void Print();
+    void CalcNormal(double cpx, double cpy, double cpz, double& nx, double& ny, double& nz);
 };
 
 #endif

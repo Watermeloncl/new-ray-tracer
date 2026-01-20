@@ -22,6 +22,7 @@ public:
     double kgls = 4.0;
     double refl = 0.0;
     double trans = 0.0;
+    double nit = 1.0;
     
     // speed up values
     double ar = 0;

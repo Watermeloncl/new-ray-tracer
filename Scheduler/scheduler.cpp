@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <stack>
 
 #include "scheduler.h"
 #include "..\Display\display.h"
@@ -111,6 +112,9 @@ void SchedulerModule::InitThreads() {
         startY = (n * i) / CLIENT_SCREEN_WIDTH;
         ThreadBuffer* buffer = new ThreadBuffer(0, startY, n, this->sceneInfo);
         this->buffers[i] = buffer;
+
+        std::stack<double>* tempStack = new std::stack<double>(*(sceneInfo->startingStack));
+        buffer->threadStartNitStack = tempStack;
 
         this->workers.push_back(std::thread(Worker::ComputePixels, buffer));
     }

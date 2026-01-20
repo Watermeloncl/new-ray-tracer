@@ -9,6 +9,7 @@ public:
     explicit GenericObject();
     virtual ~GenericObject();
     virtual void Print() = 0;
+    virtual void CalcNormal(double cpx, double cpy, double cpz, double& nx, double& ny, double& nz) = 0;
 
     ObjectType type;
     Material* material = nullptr;

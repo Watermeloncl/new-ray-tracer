@@ -18,5 +18,7 @@ ThreadBuffer::ThreadBuffer(int startX, int startY, int n, SceneInfo* sceneInfo) 
 
 ThreadBuffer::~ThreadBuffer() {
     delete[] this->data;
+    delete[] this->readiness;
+    delete this->threadStartNitStack;
     //does not delete sceneInfo
 }
