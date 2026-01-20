@@ -1,0 +1,38 @@
+WorldSpace 0.1
+ViewDistance 5.0
+
+AmbientLight 0.1 0.1 0.1
+BackgroundColor 0.2 0.2 0.2
+
+Light
+Directional
+-1.0 -1.0 1.0
+1.0 1.0 1.0
+
+# blue square front
+Object
+Polygon
+4
+-0.2 -0.2 0.0
+-0.2 0.2 0.0
+0.2 0.2 0.0
+0.2 -0.2 0.0
+
+0.7 0.2 0.1
+0.0 0.0 1.0
+1.0 1.0 1.0
+4.0 0.0 0.5 1.0
+
+# green square back
+Object
+Polygon
+4
+-0.2 -0.2 0.2
+-0.2 0.2 0.2
+0.2 0.2 0.2
+0.2 -0.2 0.2
+
+0.7 0.2 0.1
+0.1 0.8 0.1
+1.0 1.0 1.0
+4.0 0.0 0.5 1.0

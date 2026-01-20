@@ -6,7 +6,9 @@
 #include "parser.h"
 #include "..\Objects\Special\sceneInfo.h"
 #include "..\Objects\Lights\directionalLight.h"
+#include "..\Objects\Lights\pointLight.h"
 #include "..\Objects\SceneObjects\sphere.h"
+#include "..\Objects\SceneObjects\polygon.h"
 #include "..\Objects\SceneObjects\material.h"
 #include "..\MathUtilities\mathUtilities.h"
 #include "..\MainFunctions\mainFunctions.h"
@@ -47,37 +49,61 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
             ss >> sceneInfo->ambR >> sceneInfo->ambG >> sceneInfo->ambB;
         } else if(cmd == "BackgroundColor") {
             ss >> sceneInfo->bckR >> sceneInfo->bckG >> sceneInfo->bckB;
-        } else if(cmd == "DirectionalLight") {
-            DirectionalLight* light = new DirectionalLight();
-            file >> light->dx >> light->dy >> light->dz >> light->r >> light->g >> light->b;
-            MathUtilities::Normalize(light->dx, light->dy, light->dz);
-            sceneInfo->lights[sceneInfo->numLights] = light;
+        } else if(cmd == "Light") {
+            std::string type;
+            file >> type;
+
+            if(type == "Directional") {
+                DirectionalLight* light = new DirectionalLight();
+                file >> light->dx >> light->dy >> light->dz >> light->r >> light->g >> light->b;
+                MathUtilities::Normalize(light->dx, light->dy, light->dz);
+                sceneInfo->lights[sceneInfo->numLights] = light;
+            } else if(type == "Point") {
+                PointLight* light = new PointLight();
+                file >> light->cx >> light->cy >> light->cz >> light->r >> light->g >> light->b;
+                sceneInfo->lights[sceneInfo->numLights] = light;
+            }
+
             (sceneInfo->numLights)++;
         } else if(cmd == "Object") {
             std::string type;
             file >> type;
+            Material* mat = new Material();
 
             if(type == "Sphere") {
                 Sphere* sphere = new Sphere();
-                Material* mat = new Material();
+                sphere->material = mat;
+
                 file >> sphere->cx >> sphere->cy >> sphere->cz >> sphere->r;
-                file >> mat->kd >> mat->ks >> mat->ka >> mat->odr >> mat->odg >> mat->odb >> mat->osr >> mat->osg >> mat->osb >> mat->kgls >> mat->refl >> mat->trans >> mat->nit;
                 if(mat->nit <= 0) {
                     std::cout << "nit 0 or below not allowed!" << std::endl;
                     exit(1);
                 }
 
-                sphere->material = mat;
                 sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = sphere;
-                (sceneInfo->numSceneObjects)++;
+            } else if(type == "Polygon") {
+                Polygon* polygon = new Polygon();
+                polygon->material = mat;
+
+                file >> polygon->numPoints;
+                polygon->points = new double[polygon->numPoints * 3];
+                for(int i = 0; i < (polygon->numPoints * 3); i += 3) {
+                    file >> polygon->points[i] >> polygon->points[i + 1] >> polygon->points[i + 2];
+                }
+
+                sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = polygon;
             }
+
+            (sceneInfo->numSceneObjects)++;
+            file >> mat->kd >> mat->ks >> mat->ka >> mat->odr >> mat->odg >> mat->odb >> mat->osr >> mat->osg >> mat->osb >> mat->kgls >> mat->refl >> mat->trans >> mat->nit;
         }
     }
     file.close();
 
-    sceneInfo->Print();
     this->AddPrecomputes(sceneInfo);
     MainFunctions::InitStartingStack(sceneInfo);
+    sceneInfo->Print();
+
 }
 
 void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
@@ -97,6 +123,8 @@ void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
     }
 
     Sphere* sphere;
+    Polygon* polygon;
+
     for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
         if(sceneInfo->sceneObjects[i]->type == ObjectType::SPHERE) {
             sphere = (Sphere*)(sceneInfo->sceneObjects[i]);
@@ -105,6 +133,24 @@ void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
             sphere->cycy = (sphere->cy)*(sphere->cy);
             sphere->czcz = (sphere->cz)*(sphere->cz);
             sphere->rr = (sphere->r)*(sphere->r);
+        } else if(sceneInfo->sceneObjects[i]->type == ObjectType::POLYGON) {
+            polygon = (Polygon*)(sceneInfo->sceneObjects[i]);
+
+            double x1 = polygon->points[3] - polygon->points[0];
+            double y1 = polygon->points[4] - polygon->points[1];
+            double z1 = polygon->points[5] - polygon->points[2];
+
+            double x2 = polygon->points[6] - polygon->points[3];
+            double y2 = polygon->points[7] - polygon->points[4];
+            double z2 = polygon->points[8] - polygon->points[5];
+
+            polygon->nx = (y1*z2) - (z1*y2);
+            polygon->ny = -((x1*z2) - (z1*x2));
+            polygon->nz = (x1*y2) - (y1*x2);
+
+            std::cout << polygon->nx << " " << polygon->ny << " " << polygon->nz << std::endl;
+            MathUtilities::Normalize(polygon->nx, polygon->ny, polygon->nz);
         }
     }
+
 }

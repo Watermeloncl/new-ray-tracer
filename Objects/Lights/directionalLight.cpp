@@ -18,6 +18,5 @@ void DirectionalLight::Print() {
               << dz << " "
               << r << " "
               << g << " "
-              << b << " "
-              << std::endl;
+              << b << std::endl;
 }

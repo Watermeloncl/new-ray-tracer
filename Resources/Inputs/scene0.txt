@@ -8,7 +8,8 @@ ViewDistance 5.0
 AmbientLight 0.1 0.1 0.1
 BackgroundColor 0.2 0.2 0.2
 
-DirectionalLight
+Light
+Directional
 $ direction x y z
 $ LightColor r g b
 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <cfloat>
 
 #include "worker.h"
 #include "..\Objects\Special\threadBuffer.h"
@@ -29,21 +30,43 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
     double currX = (buffer->startX * pixelSize) + leftX + (pixelSize / 2.0);
     double currY = upY - (buffer->startY * pixelSize) - (pixelSize / 2.0);
 
+    double r, g, b;
+    double invTotColor;
+
+    // double subX, subY;
+
     for(int i = 0; i < buffer->n; i++) {
-        dx = currX;
-        dy = currY;
-        dz = sceneInfo->viewDistance;
+        r = 0;
+        g = 0;
+        b = 0;
 
-        MathUtilities::Normalize(dx, dy, dz);
-        CollisionInfo* collisionInfo = MainFunctions::FindCollision(ox, oy, oz, dx, dy, dz, sceneInfo);
-        ColorInfo* colorInfo = MainFunctions::CalcColor(dx, dy, dz, collisionInfo, sceneInfo, buffer->threadStartNitStack);
+        // for(;;) {
+            dx = currX;
+            dy = currY;
+            dz = sceneInfo->viewDistance;
 
-        buffer->data[buffer->writeIndex] = MathUtilities::ColorAmp(colorInfo->r);
-        buffer->data[buffer->writeIndex + 1] = MathUtilities::ColorAmp(colorInfo->g);
-        buffer->data[buffer->writeIndex + 2] = MathUtilities::ColorAmp(colorInfo->b);
+            MathUtilities::Normalize(dx, dy, dz);
+            CollisionInfo* collisionInfo = MainFunctions::FindCollision(ox, oy, oz, dx, dy, dz, sceneInfo, DBL_MAX);
+            ColorInfo* colorInfo = MainFunctions::CalcColor(dx, dy, dz, collisionInfo, sceneInfo, buffer->threadStartNitStack);
 
-        delete collisionInfo;
-        delete colorInfo;
+            r += colorInfo->r;
+            g += colorInfo->g;
+            b += colorInfo->b;
+
+            delete collisionInfo;
+            delete colorInfo;
+        // }
+
+        invTotColor = 1 / (r + g + b);
+        r *= invTotColor;
+        g *= invTotColor;
+        b *= invTotColor;
+
+
+        buffer->data[buffer->writeIndex] = MathUtilities::ColorAmp(r);
+        buffer->data[buffer->writeIndex + 1] = MathUtilities::ColorAmp(g);
+        buffer->data[buffer->writeIndex + 2] = MathUtilities::ColorAmp(b);
+
         Worker::SignalReady(buffer);
 
         currX += pixelSize;

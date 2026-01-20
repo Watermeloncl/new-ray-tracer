@@ -1,0 +1,26 @@
+WorldSpace 0.1
+ViewDistance 3.0
+
+AmbientLight 0.1 0.1 0.1
+BackgroundColor 0.2 0.2 0.2
+
+Light
+Directional
+-1.0 -1.0 1.0
+1.0 1.0 1.0
+
+Object
+Sphere
+0.0 0.0 0.0 0.4
+0.3 0.6 0.1
+1.0 1.0 1.0
+1.0 1.0 1.0
+4.0 0.5 1.0 1.5
+
+Object
+Sphere
+0.0 0.0 0.1 0.2
+0.3 0.6 0.1
+0.0 0.078431 0.780392
+1.0 1.0 1.0
+4.0 0.25 0.5 1.3333

@@ -9,6 +9,10 @@ public:
     virtual ~GenericLight();
 
     virtual void Print() = 0;
+    
+    double r = 0.2;
+    double g = 0.2;
+    double b = 0.2;
 
     LightType type;
 };

@@ -12,10 +12,6 @@ public:
     double dy = -1.0;
     double dz = 0;
 
-    double r = 0.2;
-    double g = 0.2;
-    double b = 0.2;
-
     void Print();
 };
 

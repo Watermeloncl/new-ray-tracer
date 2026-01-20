@@ -2,16 +2,19 @@
 #include <cmath>
 #include <iostream>
 #include <stack>
+#include <utility>
 
 #include "mainFunctions.h"
 #include "..\MathUtilities\mathUtilities.h"
 #include "..\Objects\SceneObjects\sphere.h"
+#include "..\Objects\SceneObjects\polygon.h"
 #include "..\Objects\Lights\directionalLight.h"
+#include "..\Objects\Lights\pointLight.h"
 #include "..\Objects\Special\collisionInfo.h"
 #include "..\Objects\Special\sceneInfo.h"
 #include "..\config.h"
 
-CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, double dx, double dy, double dz, SceneInfo* sceneInfo, int depth, bool earlyQuit) {
+CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, double dx, double dy, double dz, SceneInfo* sceneInfo, double maxDist, int depth, bool earlyQuit) {
     if(!earlyQuit && (depth > MAX_RAY_DEPTH)) {
         return nullptr;
     }
@@ -31,12 +34,13 @@ CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, dou
     double oy2 = oy*2;
     double oz2 = oz*2;
 
-    double lowestT = DBL_MAX;
+    double lowestT = maxDist;
+    double t;
     int oIndex = -1;
 
     for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
         if(sceneInfo->sceneObjects[i]->type == ObjectType::SPHERE) {
-            double b, c, d, cx, cy, cz, t;
+            double b, c, d, cx, cy, cz;
 
             Sphere* temp = (Sphere*)(sceneInfo->sceneObjects[i]);
             cx = temp->cx;
@@ -56,7 +60,7 @@ CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, dou
                 continue;
             }
 
-            if(t > 0) {
+            if((t > 0) && (t < lowestT)) {
                 lowestT = t;
                 oIndex = i;
 
@@ -76,10 +80,75 @@ CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, dou
                     }
                 }
             }
+        } else if(sceneInfo->sceneObjects[i]->type == ObjectType::POLYGON) {
+            Polygon* temp = (Polygon*)(sceneInfo->sceneObjects[i]);
+            double d = -((temp->nx * temp->points[0]) + (temp->ny * temp->points[1]) + (temp->nz * temp->points[2]));
+
+            t = (-((temp->nx * ox) + (temp->ny * oy) + (temp->nz * oz) + d)) / ((temp->nx * dx) + (temp->ny * dy) + (temp->nz * dz));
+            if((t < 0) || (t > lowestT)) {
+                continue;
+            }
+
+            double cpx = ox + (t * dx);
+            double cpy = oy + (t * dy);
+            double cpz = oz + (t * dz);
+
+            double magx = fabs(temp->nx);
+            double magy = fabs(temp->ny);
+            double magz = fabs(temp->nz);
+
+            int index1, index2;
+            double p1, p2;
+
+            if((magx >= magy) && (magx >= magz)) {
+                index1 = 1;
+                index2 = 2;
+                p1 = cpy;
+                p2 = cpz;
+            } else if((magy >= magx) && (magy >= magz)) {
+                index1 = 0;
+                index2 = 2;
+                p1 = cpx;
+                p2 = cpz;
+            } else {
+                index1 = 0;
+                index2 = 1;
+                p1 = cpx;
+                p2 = cpy;
+            }
+
+            bool inside = false;
+            int j = temp->numPoints - 1;
+            double x1, y1, x2, y2;
+
+            for(int i = 0; i < temp->numPoints; i++) {
+                x1 = temp->points[i*3 + index1];
+                y1 = temp->points[i*3 + index2];
+                x2 = temp->points[j*3 + index1];
+                y2 = temp->points[j*3 + index2];
+
+                if(((y1 > p2) != (y2 > p2)) &&
+                   (p1 < (((x2 - x1) * (p2 - y1) / (y2 - y1)) + x1))) {
+                    //(px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+                    inside = !inside;
+                }
+
+
+                j = i;
+            }
+
+            if(inside) {
+                lowestT = t;
+                oIndex = i;
+
+                if(earlyQuit) {
+                    break;
+                }
+            }
         }
     }
 
-    if(lowestT == DBL_MAX) {
+    if(lowestT == maxDist) {
         return nullptr;
     }
 
@@ -103,7 +172,6 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
         return colors;
     }
 
-
     double r = 0;
     double g = 0;
     double b = 0;
@@ -121,38 +189,53 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
     b += mat->ab;
 
     double rx, ry, rz, nl, rv;
-
+    double ldx, ldy, ldz;
     for(int i = 0; i < sceneInfo->numLights; i++) {
         if(sceneInfo->lights[i]->type == LightType::DIRECTIONAL) {
             DirectionalLight* light = (DirectionalLight*)(sceneInfo->lights[i]);
+            ldx = light->dx;
+            ldy = light->dy;
+            ldz = light->dz;
 
-            nl = MathUtilities::DotProduct(nx, ny, nz, -light->dx, -light->dy, -light->dz);
-            if(nl < 0) {
-                continue;
-            }
+        } else if(sceneInfo->lights[i]->type == LightType::POINT) {
+            PointLight* light = (PointLight*)(sceneInfo->lights[i]);
+            ldx = collisionInfo->cpx - light->cx;
+            ldy = collisionInfo->cpy - light->cy;
+            ldz = collisionInfo->cpz - light->cz;
 
-            if(MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, sceneInfo, i)) {
-                continue;
-            }
-
-            rx = (2 * nl * nx) + light->dx;
-            ry = (2 * nl * ny) + light->dy;
-            rz = (2 * nl * nz) + light->dz;
-            
-            rv = MathUtilities::DotProduct(rx, ry, rz, -dx, -dy, -dz);
-            if(rv < 0) {
-                rv = 0;
-            } else {
-                rv = pow(rv, mat->kgls);
-            }
-
-            r += light->r * ((mat->kdodr * nl) +
-                                (mat->ksosr * rv));
-            g += light->g * ((mat->kdodg * nl) +
-                                (mat->ksosg * rv));
-            b += light->b * ((mat->kdodb * nl) +
-                                (mat->ksosb * rv));
+            MathUtilities::Normalize(ldx, ldy, ldz);
+        } else {
+            continue;
         }
+
+        // do we back cull with refraction and transparency?
+        nl = MathUtilities::DotProduct(nx, ny, nz, -ldx, -ldy, -ldz);
+        if(nl < 0) {
+            continue;
+        }
+
+        // how do we handle shadows with transparent and refractive materials?
+        if(MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, sceneInfo, i)) {
+            continue;
+        }
+
+        rx = (2 * nl * nx) + ldx;
+        ry = (2 * nl * ny) + ldy;
+        rz = (2 * nl * nz) + ldz;
+        
+        rv = MathUtilities::DotProduct(rx, ry, rz, -dx, -dy, -dz);
+        if(rv < 0) {
+            rv = 0;
+        } else {
+            rv = pow(rv, mat->kgls);
+        }
+
+        r += sceneInfo->lights[i]->r * ((mat->kdodr * nl) +
+                                        (mat->ksosr * rv));
+        g += sceneInfo->lights[i]->g * ((mat->kdodg * nl) +
+                                        (mat->ksosg * rv));
+        b += sceneInfo->lights[i]->b * ((mat->kdodb * nl) +
+                                        (mat->ksosb * rv));
     }
 
     double dn = MathUtilities::DotProduct(dx, dy, dz, nx, ny, nz);
@@ -164,7 +247,7 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
 
     // Reflection
     if(mat->refl > 0) {
-        CollisionInfo* reflectInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, rfx, rfy, rfz, sceneInfo, depth + 1);
+        CollisionInfo* reflectInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, rfx, rfy, rfz, sceneInfo, DBL_MAX, depth + 1);
         ColorInfo* reflectColor = MainFunctions::CalcColor(rfx, rfy, rfz, reflectInfo, sceneInfo, nitStack, depth + 1);
         r += (reflectColor->r)*(mat->refl);
         g += (reflectColor->g)*(mat->refl);
@@ -191,7 +274,7 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
                 double tz = (nit*dz) + (inner*nz);
                 MathUtilities::Normalize(tx, ty, tz);
 
-                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, depth + 1);
+                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, DBL_MAX, depth + 1);
                 ColorInfo* refractColor = MainFunctions::CalcColor(tx, ty, tz, refractInfo, sceneInfo, nitStack, depth + 1);
 
                 nitStack->pop();
@@ -217,7 +300,7 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
                 double ty = (nit*dy) + (inner*(-ny));
                 double tz = (nit*dz) + (inner*(-nz));
 
-                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, depth + 1);
+                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, DBL_MAX, depth + 1);
                 ColorInfo* refractColor = MainFunctions::CalcColor(tx, ty, tz, refractInfo, sceneInfo, nitStack, depth + 1);
 
                 r += (refractColor->r)*(mat->trans);
@@ -239,22 +322,41 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
 }
 
 bool MainFunctions::CheckInShadow(double ox, double oy, double oz, SceneInfo* sceneInfo, int lightIndex) {
-    CollisionInfo* info;
 
+    double ldx, ldy, ldz, lightDist;
     if(sceneInfo->lights[lightIndex]->type == LightType::DIRECTIONAL) {
         DirectionalLight* light = (DirectionalLight*)(sceneInfo->lights[lightIndex]);
 
-        info = MainFunctions::FindCollision(ox, oy, oz, -(light->dx), -(light->dy), -(light->dz), sceneInfo, true);
+        ldx = light->dx;
+        ldy = light->dy;
+        ldz = light->dz;
+        lightDist = DBL_MAX;
 
-        if(info == nullptr) {
-            return false;
-        } else {
-            delete info;
-            return true;
-        }
+    } else if(sceneInfo->lights[lightIndex]->type == LightType::POINT) {
+        PointLight* light = (PointLight*)(sceneInfo->lights[lightIndex]);
+
+        ldx = ox - light->cx;
+        ldy = oy - light->cy;
+        ldz = oz - light->cz;
+
+        lightDist = std::sqrt((ldx*ldx) + (ldy*ldy) + (ldz*ldz));
+        double invMag = 1 / lightDist;
+
+        ldx *= invMag;
+        ldy *= invMag;
+        ldz *= invMag;
+    } else {
+        return false;
     }
 
-    return 0.0;
+    CollisionInfo* info = MainFunctions::FindCollision(ox, oy, oz, -ldx, -ldy, -ldz, sceneInfo, lightDist, 0, true);
+
+    if(info == nullptr) {
+        return false;
+    } else {
+        delete info;
+        return true;
+    }
 }
 
 // Only accounts for spheres, and can only start within one.

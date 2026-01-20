@@ -3,7 +3,8 @@ ViewDistance 5.0
 AmbientLight 0.3 0.3 0.3
 BackgroundColor 0.1 0.1 0.1
 
-DirectionalLight
+Light
+Directional
 0.0 -1.0 0.0
 1.0 1.0 1.0
 
