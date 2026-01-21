@@ -26,27 +26,36 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
     double upY = (sceneInfo->worldSpace * CLIENT_WORLD_RATIO_HEIGHT) / 2.0;
 
     double pixelSize = (sceneInfo->worldSpace * CLIENT_WORLD_RATIO_WIDTH) / CLIENT_SCREEN_WIDTH;
+    double halfPixelSize = pixelSize / 2.0;
 
-    double currX = (buffer->startX * pixelSize) + leftX + (pixelSize / 2.0);
-    double currY = upY - (buffer->startY * pixelSize) - (pixelSize / 2.0);
+    double currX = (buffer->startX * pixelSize) + leftX + halfPixelSize;
+    double currY = upY - (buffer->startY * pixelSize) - halfPixelSize;
 
     double r, g, b;
     double invTotColor;
 
-    // double subX, subY;
+    double subX, subY, subXStart, subXRight;
+    double numSubPixels = SUPER_SAMPLING_AMP*SUPER_SAMPLING_AMP;
+    double subPixelSize = pixelSize / SUPER_SAMPLING_AMP;
+    double halfSubPixelSize = subPixelSize / 2.0;
 
     for(int i = 0; i < buffer->n; i++) {
         r = 0;
         g = 0;
         b = 0;
 
-        // for(;;) {
-            dx = currX;
-            dy = currY;
+        subXStart = currX - halfPixelSize + (halfSubPixelSize);
+        subXRight = currX + halfPixelSize;
+        subX = subXStart;
+        subY = currY + halfPixelSize - halfSubPixelSize;
+
+        for(int j = 0; j < numSubPixels; j++) {
+            dx = subX;
+            dy = subY;
             dz = sceneInfo->viewDistance;
 
             MathUtilities::Normalize(dx, dy, dz);
-            CollisionInfo* collisionInfo = MainFunctions::FindCollision(ox, oy, oz, dx, dy, dz, sceneInfo, DBL_MAX);
+            CollisionInfo* collisionInfo = MainFunctions::FindCollision(ox, oy, oz, dx, dy, dz, sceneInfo, buffer->threadStartNitStack, DBL_MAX);
             ColorInfo* colorInfo = MainFunctions::CalcColor(dx, dy, dz, collisionInfo, sceneInfo, buffer->threadStartNitStack);
 
             r += colorInfo->r;
@@ -55,13 +64,18 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
 
             delete collisionInfo;
             delete colorInfo;
-        // }
 
-        invTotColor = 1 / (r + g + b);
+            subX += subPixelSize;
+            if(subX > subXRight) {
+                subX = subXStart;
+                subY -= subPixelSize;
+            }
+        }
+
+        invTotColor = 1 / numSubPixels;
         r *= invTotColor;
         g *= invTotColor;
         b *= invTotColor;
-
 
         buffer->data[buffer->writeIndex] = MathUtilities::ColorAmp(r);
         buffer->data[buffer->writeIndex + 1] = MathUtilities::ColorAmp(g);
@@ -71,7 +85,7 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
 
         currX += pixelSize;
         if(currX > rightX) {
-            currX = leftX + (pixelSize / 2.0);
+            currX = leftX + halfPixelSize;
             currY -= pixelSize;
         }
     }

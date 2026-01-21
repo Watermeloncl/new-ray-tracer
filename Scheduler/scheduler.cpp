@@ -162,5 +162,6 @@ void SchedulerModule::CheckToWrite() {
         fwrite(this->filePixels, 1, (size_t)CLIENT_SCREEN_WIDTH * CLIENT_SCREEN_HEIGHT * 3, fp);
 
         fclose(fp);
+        this->writtenOut = true;
     }
 }

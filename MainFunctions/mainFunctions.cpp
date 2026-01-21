@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stack>
 #include <utility>
+#include <algorithm>
 
 #include "mainFunctions.h"
 #include "..\MathUtilities\mathUtilities.h"
@@ -14,7 +15,7 @@
 #include "..\Objects\Special\sceneInfo.h"
 #include "..\config.h"
 
-CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, double dx, double dy, double dz, SceneInfo* sceneInfo, double maxDist, int depth, bool earlyQuit) {
+CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, double dx, double dy, double dz, SceneInfo* sceneInfo, std::stack<double>* nitStack, double maxDist, int depth, bool earlyQuit) {
     if(!earlyQuit && (depth > MAX_RAY_DEPTH)) {
         return nullptr;
     }
@@ -129,7 +130,6 @@ CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, dou
 
                 if(((y1 > p2) != (y2 > p2)) &&
                    (p1 < (((x2 - x1) * (p2 - y1) / (y2 - y1)) + x1))) {
-                    //(px < (xj - xi) * (py - yi) / (yj - yi) + xi)
                     inside = !inside;
                 }
 
@@ -208,14 +208,12 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
             continue;
         }
 
-        // do we back cull with refraction and transparency?
         nl = MathUtilities::DotProduct(nx, ny, nz, -ldx, -ldy, -ldz);
         if(nl < 0) {
             continue;
         }
 
-        // how do we handle shadows with transparent and refractive materials?
-        if(MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, sceneInfo, i)) {
+        if((nitStack->size() < 2) && (MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, sceneInfo, nitStack, i))) {
             continue;
         }
 
@@ -243,11 +241,10 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
     double rfy = dy - (2 * dn * ny);
     double rfz = dz - (2 * dn * nz);
     MathUtilities::Normalize(rfx, rfy, rfz);
-    
 
     // Reflection
     if(mat->refl > 0) {
-        CollisionInfo* reflectInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, rfx, rfy, rfz, sceneInfo, DBL_MAX, depth + 1);
+        CollisionInfo* reflectInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, rfx, rfy, rfz, sceneInfo, nitStack, DBL_MAX, depth + 1);
         ColorInfo* reflectColor = MainFunctions::CalcColor(rfx, rfy, rfz, reflectInfo, sceneInfo, nitStack, depth + 1);
         r += (reflectColor->r)*(mat->refl);
         g += (reflectColor->g)*(mat->refl);
@@ -274,7 +271,7 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
                 double tz = (nit*dz) + (inner*nz);
                 MathUtilities::Normalize(tx, ty, tz);
 
-                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, DBL_MAX, depth + 1);
+                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, nitStack, DBL_MAX, depth + 1);
                 ColorInfo* refractColor = MainFunctions::CalcColor(tx, ty, tz, refractInfo, sceneInfo, nitStack, depth + 1);
 
                 nitStack->pop();
@@ -300,7 +297,7 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
                 double ty = (nit*dy) + (inner*(-ny));
                 double tz = (nit*dz) + (inner*(-nz));
 
-                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, DBL_MAX, depth + 1);
+                CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, nitStack, DBL_MAX, depth + 1);
                 ColorInfo* refractColor = MainFunctions::CalcColor(tx, ty, tz, refractInfo, sceneInfo, nitStack, depth + 1);
 
                 r += (refractColor->r)*(mat->trans);
@@ -321,7 +318,7 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
     return colors;
 }
 
-bool MainFunctions::CheckInShadow(double ox, double oy, double oz, SceneInfo* sceneInfo, int lightIndex) {
+bool MainFunctions::CheckInShadow(double ox, double oy, double oz, SceneInfo* sceneInfo, std::stack<double>* nitStack, int lightIndex) {
 
     double ldx, ldy, ldz, lightDist;
     if(sceneInfo->lights[lightIndex]->type == LightType::DIRECTIONAL) {
@@ -349,7 +346,7 @@ bool MainFunctions::CheckInShadow(double ox, double oy, double oz, SceneInfo* sc
         return false;
     }
 
-    CollisionInfo* info = MainFunctions::FindCollision(ox, oy, oz, -ldx, -ldy, -ldz, sceneInfo, lightDist, 0, true);
+    CollisionInfo* info = MainFunctions::FindCollision(ox, oy, oz, -ldx, -ldy, -ldz, sceneInfo, nitStack, lightDist, 0, true);
 
     if(info == nullptr) {
         return false;

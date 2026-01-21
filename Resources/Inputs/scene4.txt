@@ -1,12 +1,12 @@
 WorldSpace 0.15
 ViewDistance 5.0
-AmbientLight 0.3 0.3 0.3
+AmbientLight 0.2 0.2 0.2
 BackgroundColor 0.1 0.1 0.1
 
 Light
 Directional
-0.0 -1.0 0.0
-1.0 1.0 1.0
+0.1 -1.0 0.1
+0.8 0.8 0.8
 
 # blue sphere
 Object
