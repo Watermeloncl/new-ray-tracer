@@ -5,6 +5,7 @@
 
 #include "..\Lights\genericLight.h"
 #include "..\SceneObjects\genericObject.h"
+#include "boundingBox.h"
 
 struct SceneInfo {
 public:
@@ -14,6 +15,8 @@ public:
     GenericLight** lights = nullptr;
     GenericObject** sceneObjects = nullptr;
     std::stack<double>* startingStack = nullptr;
+
+    BoundingBox* headBox = nullptr;
 
     int numLights = 0;
     int numSceneObjects = 0;
@@ -30,6 +33,7 @@ public:
     double bckB = 0.0;
 
     void Print();
+    void PrintTree();
 };
 
 #endif

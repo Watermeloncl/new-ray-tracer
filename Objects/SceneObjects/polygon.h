@@ -5,10 +5,12 @@
 
 struct Polygon : public GenericObject {
 public:
-    Polygon();
+    Polygon(int newId);
     ~Polygon();
+    
     void Print();
     void CalcNormal(double cpx, double cpy, double cpz, double& nx, double& ny, double& nz);
+    void BuildMiniBox();
 
     int numPoints = 0;
     double* points = nullptr;

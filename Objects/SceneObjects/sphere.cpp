@@ -2,7 +2,7 @@
 
 #include "sphere.h"
 
-Sphere::Sphere() {
+Sphere::Sphere(int newId) : GenericObject(newId) {
     this->type = ObjectType::SPHERE;
 }
 
@@ -25,4 +25,13 @@ void Sphere::CalcNormal(double cpx, double cpy, double cpz, double& nx, double& 
     nx = (cpx - this->cx) * invr;
     ny = (cpy - this->cy) * invr;
     nz = (cpz - this->cz) * invr;
+}
+
+void Sphere::BuildMiniBox() {
+    this->lowX = this->cx - this->r;
+    this->lowY = this->cy - this->r;
+    this->lowZ = this->cz - this->r;
+    this->highX = this->cx + this->r;
+    this->highY = this->cy + this->r;
+    this->highZ = this->cz + this->r;
 }

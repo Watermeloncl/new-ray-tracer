@@ -5,8 +5,12 @@
 
 struct Sphere : public GenericObject {
 public:
-    Sphere();
+    Sphere(int newId);
     ~Sphere();
+    
+    void Print();
+    void CalcNormal(double cpx, double cpy, double cpz, double& nx, double& ny, double& nz);
+    void BuildMiniBox();
 
     double cx = 0;
     double cy = 0;
@@ -20,8 +24,7 @@ public:
     double czcz = 0;
     double rr = 1;
 
-    void Print();
-    void CalcNormal(double cpx, double cpy, double cpz, double& nx, double& ny, double& nz);
+
 };
 
 #endif

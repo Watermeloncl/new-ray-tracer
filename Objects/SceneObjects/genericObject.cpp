@@ -1,7 +1,7 @@
 #include "genericObject.h"
 
-GenericObject::GenericObject() {
-
+GenericObject::GenericObject(int newId) {
+    this->id = newId;
 }
 
 GenericObject::~GenericObject() {

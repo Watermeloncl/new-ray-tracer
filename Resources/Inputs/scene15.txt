@@ -1,0 +1,31 @@
+WorldSpace 0.3
+ViewDistance 5.0
+AmbientLight 0.2 0.2 0.2
+BackgroundColor 0.1 0.1 0.1
+
+Light
+Directional
+-1.0 -1.0 2.0
+1.0 1.0 1.0
+
+# redish sphere
+Object
+Sphere
+0.4 -0.2 2.6 0.4
+0.7 0.2 0.1
+1.0 0.3 0.3
+1.0 1.0 1.0
+16.0 0.0 0.0 1.0
+
+Object
+Polygon
+4
+-10.0 -2.0 -1.0
+-10.0 1.0 8.0
+10.0 1.0 8.0
+10.0 -2.0 -1.0
+
+0.7 0.2 0.1
+0.0 0.0 0.0
+1.0 1.0 1.0
+4.0 0.8 0.0 1.0

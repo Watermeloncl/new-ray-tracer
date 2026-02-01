@@ -10,6 +10,7 @@ public:
 
     void ParseInput(SceneInfo* sceneInfo);
     void AddPrecomputes(SceneInfo* sceneInfo);
+    void CreateTreeStructure(SceneInfo* sceneInfo);
 };
 
 #endif

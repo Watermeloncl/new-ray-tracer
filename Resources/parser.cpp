@@ -2,9 +2,13 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <algorithm>
+#include <cfloat>
+#include <vector>
 
 #include "parser.h"
 #include "..\Objects\Special\sceneInfo.h"
+#include "..\Objects\Special\boundingBox.h"
 #include "..\Objects\Lights\directionalLight.h"
 #include "..\Objects\Lights\pointLight.h"
 #include "..\Objects\SceneObjects\sphere.h"
@@ -71,7 +75,7 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
             Material* mat = new Material();
 
             if(type == "Sphere") {
-                Sphere* sphere = new Sphere();
+                Sphere* sphere = new Sphere(sceneInfo->numSceneObjects);
                 sphere->material = mat;
 
                 file >> sphere->cx >> sphere->cy >> sphere->cz >> sphere->r;
@@ -82,7 +86,7 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
 
                 sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = sphere;
             } else if(type == "Polygon") {
-                Polygon* polygon = new Polygon();
+                Polygon* polygon = new Polygon(sceneInfo->numSceneObjects);
                 polygon->material = mat;
 
                 file >> polygon->numPoints;
@@ -101,9 +105,10 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
     file.close();
 
     this->AddPrecomputes(sceneInfo);
+    this->CreateTreeStructure(sceneInfo);
     MainFunctions::InitStartingStack(sceneInfo);
-    sceneInfo->Print();
-
+    // sceneInfo->Print();
+    // sceneInfo->PrintTree();
 }
 
 void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
@@ -153,4 +158,47 @@ void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
         }
     }
 
+}
+
+void Parser::CreateTreeStructure(SceneInfo* sceneInfo) {
+    double highX = -DBL_MAX;
+    double highY = -DBL_MAX;
+    double highZ = -DBL_MAX;
+
+    double lowX = DBL_MAX;
+    double lowY = DBL_MAX;
+    double lowZ = DBL_MAX;
+
+    GenericObject* currObject;
+    for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
+        currObject = sceneInfo->sceneObjects[i];
+        currObject->BuildMiniBox();
+
+        highX = std::max(highX, currObject->highX);
+        highY = std::max(highY, currObject->highY);
+        highZ = std::max(highZ, currObject->highZ);
+
+        lowX = std::min(lowX, currObject->lowX);
+        lowY = std::min(lowY, currObject->lowY);
+        lowZ = std::min(lowZ, currObject->lowZ);
+    }
+
+    BoundingBox* headBox = new BoundingBox();
+    headBox->lowX = lowX;
+    headBox->lowY = lowY;
+    headBox->lowZ = lowZ;
+
+    headBox->highX = highX;
+    headBox->highY = highY;
+    headBox->highZ = highZ;
+
+    std::vector<GenericObject*> objects;
+    objects.reserve(sceneInfo->numSceneObjects);
+    for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
+        objects.push_back(sceneInfo->sceneObjects[i]);
+    }
+
+    headBox->SplitCreate(objects);
+
+    sceneInfo->headBox = headBox;
 }

@@ -1,18 +1,63 @@
-WorldSpace 0.3
-ViewDistance 3.0
-
-AmbientLight 0.1 0.1 0.1
+WorldSpace 0.1
+ViewDistance 5.0
+AmbientLight 0.2 0.2 0.2
 BackgroundColor 0.2 0.2 0.2
 
 Light
-Point
--4.0 2.0 -4.0
+Directional
+-1.0 -1.0 1.0
 1.0 1.0 1.0
 
+# purple sphere
 Object
 Sphere
-0.0 0.0 0.1 0.3
-0.4 0.3 0.3
-0.0 0.0 0.8
+0.0 0.0 0.0 0.05
+0.7 0.2 0.1
+1.0 0.0 1.0
 1.0 1.0 1.0
-4.0 0.0 0.0 1.0
+16.0 0.0 0.0 1.0
+
+# purple sphere
+Object
+Sphere
+-0.15 0.0 0.0 0.05
+0.7 0.2 0.1
+1.0 0.0 1.0
+1.0 1.0 1.0
+16.0 0.0 0.0 1.0
+
+# purple sphere
+Object
+Sphere
+-0.3 0.0 0.0 0.05
+0.7 0.2 0.1
+1.0 0.0 1.0
+1.0 1.0 1.0
+16.0 0.0 0.0 1.0
+
+# purple sphere
+Object
+Sphere
+0.15 0.0 0.0 0.05
+0.7 0.2 0.1
+1.0 0.0 1.0
+1.0 1.0 1.0
+16.0 0.0 0.0 1.0
+
+# purple sphere
+Object
+Sphere
+0.3 0.0 0.0 0.05
+0.7 0.2 0.1
+1.0 0.0 1.0
+1.0 1.0 1.0
+16.0 0.0 0.0 1.0
+
+# green sphere
+Object
+Sphere
+0.0 0.4 0.0 0.1
+0.7 0.2 0.1
+0.0 0.8 0.0
+1.0 1.0 1.0
+16.0 0.0 0.0 1.0

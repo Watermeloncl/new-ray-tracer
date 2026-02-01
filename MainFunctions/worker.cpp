@@ -2,6 +2,8 @@
 #include <chrono>
 #include <thread>
 #include <cfloat>
+#include <random>
+#include <algorithm>
 
 #include "worker.h"
 #include "..\Objects\Special\threadBuffer.h"
@@ -12,6 +14,8 @@
 #include "..\config.h"
 
 void Worker::ComputePixels(ThreadBuffer* buffer) {
+    static thread_local std::mt19937 gen(std::random_device{}());
+
     SceneInfo* sceneInfo = buffer->sceneInfo;
     double ox = 0;
     double oy = 0;
@@ -39,6 +43,11 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
     double subPixelSize = pixelSize / SUPER_SAMPLING_AMP;
     double halfSubPixelSize = subPixelSize / 2.0;
 
+    double sigma = pixelSize * ANTI_ALIAS_SIGMA;
+    std::normal_distribution<double> antiAliasRandomizer(0, sigma);
+    double clampMax = subPixelSize / 2.0;
+    double clampMin = -(subPixelSize / 2.0);
+
     for(int i = 0; i < buffer->n; i++) {
         r = 0;
         g = 0;
@@ -53,6 +62,9 @@ void Worker::ComputePixels(ThreadBuffer* buffer) {
             dx = subX;
             dy = subY;
             dz = sceneInfo->viewDistance;
+
+            dx += std::clamp(antiAliasRandomizer(gen), clampMin, clampMax);
+            dy += std::clamp(antiAliasRandomizer(gen), clampMin, clampMax);
 
             MathUtilities::Normalize(dx, dy, dz);
             CollisionInfo* collisionInfo = MainFunctions::FindCollision(ox, oy, oz, dx, dy, dz, sceneInfo, buffer->threadStartNitStack, DBL_MAX);

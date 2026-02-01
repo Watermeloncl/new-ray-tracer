@@ -56,3 +56,7 @@ void SceneInfo::Print() {
     std::cout << "End scene" << std::endl;
 
 }
+
+void SceneInfo::PrintTree() {
+    this->headBox->Print("");
+}
