@@ -11,8 +11,10 @@
 #include "..\Objects\Special\boundingBox.h"
 #include "..\Objects\Lights\directionalLight.h"
 #include "..\Objects\Lights\pointLight.h"
+#include "..\Objects\Lights\areaLight.h"
 #include "..\Objects\SceneObjects\sphere.h"
 #include "..\Objects\SceneObjects\polygon.h"
+#include "..\Objects\SceneObjects\texture.h"
 #include "..\Objects\SceneObjects\material.h"
 #include "..\MathUtilities\mathUtilities.h"
 #include "..\MainFunctions\mainFunctions.h"
@@ -66,6 +68,18 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
                 PointLight* light = new PointLight();
                 file >> light->cx >> light->cy >> light->cz >> light->r >> light->g >> light->b;
                 sceneInfo->lights[sceneInfo->numLights] = light;
+            } else if(type == "Area") {
+                AreaLight* light = new AreaLight(sceneInfo->numSceneObjects);
+                file >> light->numPoints;
+                light->points = new double[light->numPoints * 3];
+                for(int i = 0; i < (light->numPoints * 3); i += 3) {
+                    file >> light->points[i] >> light->points[i + 1] >> light->points[i + 2];
+                }
+                file >> light->r >> light->g >> light->b;
+
+                sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = light;
+                (sceneInfo->numSceneObjects)++;
+                sceneInfo->lights[sceneInfo->numLights] = light;
             }
 
             (sceneInfo->numLights)++;
@@ -96,6 +110,20 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
                 }
 
                 sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = polygon;
+            } else if(type == "Texture") {
+                Texture* texture = new Texture(sceneInfo->numSceneObjects);
+                texture->material = mat;
+                texture->numPoints = 4;
+                texture->points = new double[texture->numPoints * 3];
+
+                file >> texture->textureName;
+                texture->LoadBMP();
+                for(int i = 0; i < (texture->numPoints * 3); i += 3) {
+                    file >> texture->points[i] >> texture->points[i + 1] >> texture->points[i + 2];
+                }
+
+                sceneInfo->sceneObjects[sceneInfo->numSceneObjects] = texture;
+
             }
 
             (sceneInfo->numSceneObjects)++;
@@ -107,7 +135,7 @@ void Parser::ParseInput(SceneInfo* sceneInfo) {
     this->AddPrecomputes(sceneInfo);
     this->CreateTreeStructure(sceneInfo);
     MainFunctions::InitStartingStack(sceneInfo);
-    // sceneInfo->Print();
+    sceneInfo->Print();
     // sceneInfo->PrintTree();
 }
 
@@ -115,6 +143,33 @@ void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
     Material* temp;
 
     for(int i = 0; i < sceneInfo->numSceneObjects; i++) {
+        if(sceneInfo->sceneObjects[i]->type == ObjectType::POLYGON) {
+            Polygon* poly = (Polygon*)(sceneInfo->sceneObjects[i]);
+            if(poly->isTextured) {
+                Texture* texture = static_cast<Texture*>(sceneInfo->sceneObjects[i]);
+                double minX = DBL_MAX;
+                double maxX = -DBL_MAX;
+                double minY = DBL_MAX;
+                double maxY = -DBL_MAX;
+                
+                for(int i = 0; i < (texture->numPoints * 3); i += 3) {
+                    minX = std::min(minX, texture->points[i]);
+                    maxX = std::max(maxX, texture->points[i]);
+                    minY = std::min(minY, texture->points[i + 1]);
+                    maxY = std::max(maxY, texture->points[i + 1]);
+                }
+                
+                texture->realWidth = std::abs(maxX - minX);
+                texture->realHeight = std::abs(maxY - minY);
+                texture->minX = minX;
+                texture->maxY = maxY;
+
+                continue;
+            }
+            if(poly->isLight) {
+                continue;
+            }
+        }
         temp = sceneInfo->sceneObjects[i]->material;
         temp->ar = sceneInfo->ambR * temp->ka * temp->odr;
         temp->ag = sceneInfo->ambG * temp->ka * temp->odg;
@@ -153,7 +208,6 @@ void Parser::AddPrecomputes(SceneInfo* sceneInfo) {
             polygon->ny = -((x1*z2) - (z1*x2));
             polygon->nz = (x1*y2) - (y1*x2);
 
-            std::cout << polygon->nx << " " << polygon->ny << " " << polygon->nz << std::endl;
             MathUtilities::Normalize(polygon->nx, polygon->ny, polygon->nz);
         }
     }

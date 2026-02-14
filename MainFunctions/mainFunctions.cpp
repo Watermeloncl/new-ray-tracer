@@ -12,8 +12,10 @@
 #include "..\MathUtilities\mathUtilities.h"
 #include "..\Objects\SceneObjects\sphere.h"
 #include "..\Objects\SceneObjects\polygon.h"
+#include "..\Objects\SceneObjects\texture.h"
 #include "..\Objects\Lights\directionalLight.h"
 #include "..\Objects\Lights\pointLight.h"
+#include "..\Objects\Lights\areaLight.h"
 #include "..\Objects\Special\collisionInfo.h"
 #include "..\Objects\Special\sceneInfo.h"
 #include "..\Objects\Special\boundingBox.h"
@@ -22,6 +24,7 @@
 thread_local std::mt19937 MainFunctions::gen(std::random_device{}());
 thread_local std::normal_distribution<double> MainFunctions::glossDistro(0, GLOSS_SIGMA);
 thread_local std::normal_distribution<double> MainFunctions::transDistro(0, TRANSLUCENCY_SIGMA);
+thread_local std::uniform_real_distribution<double> MainFunctions::shadowDistro(0, 1);
 
 CollisionInfo* MainFunctions::FindCollision(double ox, double oy, double oz, double dx, double dy, double dz, SceneInfo* sceneInfo, std::stack<double>* nitStack, double maxDist, int depth, bool earlyQuit) {
     if(!earlyQuit && (depth > MAX_RAY_DEPTH)) {
@@ -235,7 +238,7 @@ double MainFunctions::CollidesWithBox(BoundingBox* box, double ox, double oy, do
 
 ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionInfo* collisionInfo, SceneInfo* sceneInfo, std::stack<double>* nitStack, int depth) {
     ColorInfo* colors = new ColorInfo();
-
+    
     if(collisionInfo == nullptr) {
         colors->r = sceneInfo->bckR;
         colors->g = sceneInfo->bckG;
@@ -248,35 +251,70 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
     double b = 0;
 
     GenericObject* collided = sceneInfo->sceneObjects[collisionInfo->oIndex];
+    Material* tempMat = collided->material->Copy();
     Material* mat = collided->material;
+
+    if(collided->type == ObjectType::POLYGON) {
+        Polygon* poly = static_cast<Polygon*>(collided);
+        if(poly->isLight) {
+            AreaLight* light = static_cast<AreaLight*>(poly);
+            colors->r = light->r;
+            colors->g = light->g;
+            colors->b = light->b;
+            delete tempMat;
+            return colors;
+        } else if(poly->isTextured) {
+            Texture* texture = static_cast<Texture*>(collided);
+            double r, g, b;
+            texture->GetPixel(collisionInfo->cpx, collisionInfo->cpy, r, g, b);
+
+            tempMat->ar = sceneInfo->ambR * mat->ka * r;
+            tempMat->ag = sceneInfo->ambG * mat->ka * g;
+            tempMat->ab = sceneInfo->ambB * mat->ka * b;
+            tempMat->kdodr = mat->kd * r;
+            tempMat->kdodg = mat->kd * g;
+            tempMat->kdodb = mat->kd * b;
+            tempMat->ksosr = mat->ks * r;
+            tempMat->ksosg = mat->ks * g;
+            tempMat->ksosb = mat->ks * b;
+        }
+    }
 
     double nx = 0;
     double ny = 0;
     double nz = 0;
     collided->CalcNormal(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, nx, ny, nz);
 
-    r += mat->ar;
-    g += mat->ag;
-    b += mat->ab;
+    r += tempMat->ar;
+    g += tempMat->ag;
+    b += tempMat->ab;
 
     double rx, ry, rz, nl, rv;
-    double ldx, ldy, ldz;
+    double ldx, ldy, ldz, destX, destY, destZ;
+    LightType type;
     for(int i = 0; i < sceneInfo->numLights; i++) {
-        if(sceneInfo->lights[i]->type == LightType::DIRECTIONAL) {
+        type = sceneInfo->lights[i]->type;
+        if(type == LightType::DIRECTIONAL) {
             DirectionalLight* light = (DirectionalLight*)(sceneInfo->lights[i]);
             ldx = light->dx;
             ldy = light->dy;
             ldz = light->dz;
-
-        } else if(sceneInfo->lights[i]->type == LightType::POINT) {
+            //doesn't use dest
+        } else if(type == LightType::POINT) {
             PointLight* light = (PointLight*)(sceneInfo->lights[i]);
             ldx = collisionInfo->cpx - light->cx;
             ldy = collisionInfo->cpy - light->cy;
             ldz = collisionInfo->cpz - light->cz;
+            destX = light->cx;
+            destY = light->cy;
+            destZ = light->cz;
 
             MathUtilities::Normalize(ldx, ldy, ldz);
-        } else if(sceneInfo->lights[i]->type == LightType::AREA) {
-            //todo
+        } else if(type == LightType::AREA) {
+            AreaLight* light = (AreaLight*)(sceneInfo->lights[i]);
+            ldx = light->nx;
+            ldy = light->ny;
+            ldz = light->nz;
         } else {
             continue;
         }
@@ -286,7 +324,58 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
             continue;
         }
 
-        if((nitStack->size() < 2) && (MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, sceneInfo, nitStack, i))) {
+        if(type == LightType::AREA) {
+            double* points = static_cast<AreaLight*>(sceneInfo->lights[i])->points;
+            double sr = 0.0;
+            double sg = 0.0;
+            double sb = 0.0;
+
+            double r1, r2, destX, destY, destZ;
+            for(int j = 0; j < AREA_LIGHT_SOFT_SHADOW_AMP; j++) {
+                r1 = MainFunctions::shadowDistro(gen);
+                r2 = MainFunctions::shadowDistro(gen);
+
+                destX = points[0] + r1*(points[3] - points[0]) + r2*(points[9] - points[0]);
+                destY = points[1] + r1*(points[4] - points[1]) + r2*(points[10] - points[1]);
+                destZ = points[2] + r1*(points[5] - points[2]) + r2*(points[11] - points[2]);
+
+                if(MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, destX, destY, destZ, sceneInfo, nitStack, i)) {
+                    continue;
+                }
+
+                ldx = collisionInfo->cpx - destX;
+                ldy = collisionInfo->cpy - destY;
+                ldz = collisionInfo->cpz - destZ;
+                MathUtilities::Normalize(ldx, ldy, ldz);
+
+                nl = MathUtilities::DotProduct(nx, ny, nz, -ldx, -ldy, -ldz);
+                rx = (2 * nl * nx) + ldx;
+                ry = (2 * nl * ny) + ldy;
+                rz = (2 * nl * nz) + ldz;
+                rv = MathUtilities::DotProduct(rx, ry, rz, -dx, -dy, -dz);
+                if(rv < 0) {
+                    rv = 0;
+                } else {
+                    rv = pow(rv, mat->kgls);
+                }
+
+                sr += sceneInfo->lights[i]->r * ((tempMat->kdodr * nl) +
+                                                 (tempMat->ksosr * rv));
+                sg += sceneInfo->lights[i]->g * ((tempMat->kdodg * nl) +
+                                                 (tempMat->ksosg * rv));
+                sb += sceneInfo->lights[i]->b * ((tempMat->kdodb * nl) +
+                                                 (tempMat->ksosb * rv));
+            }
+
+            double invShadow = 1.0 / AREA_LIGHT_SOFT_SHADOW_AMP;
+            r += (sr * invShadow);
+            g += (sg * invShadow);
+            b += (sb * invShadow);
+
+            continue;
+        }
+
+        if((nitStack->size() < 2) && (MainFunctions::CheckInShadow(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, destX, destY, destZ, sceneInfo, nitStack, i))) {
             continue;
         }
 
@@ -301,57 +390,18 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
             rv = pow(rv, mat->kgls);
         }
 
-        r += sceneInfo->lights[i]->r * ((mat->kdodr * nl) +
-                                        (mat->ksosr * rv));
-        g += sceneInfo->lights[i]->g * ((mat->kdodg * nl) +
-                                        (mat->ksosg * rv));
-        b += sceneInfo->lights[i]->b * ((mat->kdodb * nl) +
-                                        (mat->ksosb * rv));
+        r += sceneInfo->lights[i]->r * ((tempMat->kdodr * nl) +
+                                        (tempMat->ksosr * rv));
+        g += sceneInfo->lights[i]->g * ((tempMat->kdodg * nl) +
+                                        (tempMat->ksosg * rv));
+        b += sceneInfo->lights[i]->b * ((tempMat->kdodb * nl) +
+                                        (tempMat->ksosb * rv));
     }
 
-
+    double dn = MathUtilities::DotProduct(dx, dy, dz, nx, ny, nz);
     
     // Reflection
     if(mat->refl > 0) {
-
-        // vvv potential new
-        // double jnx, jny, jnz;
-        // double rfr = 0.0;
-        // double rfg = 0.0;
-        // double rfb = 0.0;
-
-        // for(int i = 0; i < SUPER_SAMPLING_GLOSS_AMP; i++) {
-        //     jnx = nx + glossDistro(gen);
-        //     jny = ny + glossDistro(gen);
-        //     jnz = nz + glossDistro(gen);
-        //     MathUtilities::Normalize(jnx, jny, jnz);
-
-        //     double rdn = MathUtilities::DotProduct(dx, dy, dz, jnx, jny, jnz);
-        //     double rfx = dx - (2 * rdn * jnx);
-        //     double rfy = dy - (2 * rdn * jny);
-        //     double rfz = dz - (2 * rdn * jnz);
-        //     MathUtilities::Normalize(rfx, rfy, rfz);
-
-        //     CollisionInfo* reflectInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, rfx, rfy, rfz, sceneInfo, nitStack, DBL_MAX, depth + 1);
-        //     ColorInfo* reflectColor = MainFunctions::CalcColor(rfx, rfy, rfz, reflectInfo, sceneInfo, nitStack, depth + 1);
-
-        //     rfr += reflectColor->r;
-        //     rfg += reflectColor->g;
-        //     rfb += reflectColor->b;
-            
-        //     delete reflectInfo;
-        //     delete reflectColor;
-        // }
-
-        // double invReflect = 1.0 / SUPER_SAMPLING_GLOSS_AMP;
-        // r += ((rfr * invReflect) * (mat->refl));
-        // g += ((rfg * invReflect) * (mat->refl));
-        // b += ((rfb * invReflect) * (mat->refl));
-        // ^^^ potential new
-        
-        //OLD
-        // defined dn earlier
-        double dn = MathUtilities::DotProduct(dx, dy, dz, nx, ny, nz);
         double rfx = dx - (2 * dn * nx);
         double rfy = dy - (2 * dn * ny);
         double rfz = dz - (2 * dn * nz);
@@ -383,64 +433,10 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
         b += ((rfb * invReflect) * (mat->refl));
     }
 
-    double dn = MathUtilities::DotProduct(dx, dy, dz, nx, ny, nz);
-
     // Refraction
     if(mat->trans > 0) {
         double cosTheta = -dn;
         if(dn < 0) {
-
-            // vvv potential new
-            // double jnx, jny, jnz, jdn, nit, d, inner, tx, ty, tz;
-            // double rjt = 0.0;
-            // double gjt = 0.0;
-            // double bjt = 0.0;
-
-            // for(int i = 0; i < SUPER_SAMPLING_TRANSLUCENCY_AMP; i++) {
-            //     jnx = nx + transDistro(gen);
-            //     jny = ny + transDistro(gen);
-            //     jnz = nz + transDistro(gen);
-            //     MathUtilities::Normalize(jnx, jny, jnz);
-            //     jdn = MathUtilities::DotProduct(dx, dy, dz, jnx, jny, jnz);
-            //     if(jdn >= 0) {
-            //         i--;
-            //         continue;
-            //     }
-
-            //     cosTheta = -jdn;
-            //     nit = nitStack->top() / mat->nit;
-            //     d = 1 + (nit*nit)*((cosTheta*cosTheta) - 1);
-
-            //     if((nit < 1) || (d >= 0)) {
-            //         //no TIR (total internal refraction)
-            //         nitStack->push(mat->nit);
-
-            //         inner = (nit*cosTheta) - std::sqrt(d);
-            //         tx = (nit*dx) + (inner*jnx);
-            //         ty = (nit*dy) + (inner*jny);
-            //         tz = (nit*dz) + (inner*jnz);
-            //         MathUtilities::Normalize(tx, ty, tz);
-
-            //         CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, nitStack, DBL_MAX, depth + 1);
-            //         ColorInfo* refractColor = MainFunctions::CalcColor(tx, ty, tz, refractInfo, sceneInfo, nitStack, depth + 1);
-
-            //         rjt += refractColor->r;
-            //         gjt += refractColor->g;
-            //         bjt += refractColor->b;
-                    
-            //         delete refractInfo;
-            //         delete refractColor;
-            //         nitStack->pop();
-            //     }                
-            // }
-
-            // double invTrans = 1.0 / SUPER_SAMPLING_TRANSLUCENCY_AMP;
-            // r += (rjt * invTrans)*(mat->trans);
-            // g += (gjt * invTrans)*(mat->trans);
-            // b += (bjt * invTrans)*(mat->trans);
-            // ^^^ potential new
-
-            //OLD
             //outside polygon/sphere
             double nit = nitStack->top() / mat->nit;
             double d = 1 + (nit*nit)*((cosTheta*cosTheta) - 1);
@@ -488,55 +484,8 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
             double current = nitStack->top();
             nitStack->pop();
             double next = nitStack->top();
-
             double nit = current / next;
 
-            // vvv potential new
-            // double jnx, jny, jnz, jdn, d, inner, tx, ty, tz;
-            // double rjt = 0.0;
-            // double gjt = 0.0;
-            // double bjt = 0.0;
-
-            // for(int i = 0; i < SUPER_SAMPLING_TRANSLUCENCY_AMP; i++) {
-            //     jnx = nx + transDistro(gen);
-            //     jny = ny + transDistro(gen);
-            //     jnz = nz + transDistro(gen);
-            //     MathUtilities::Normalize(jnx, jny, jnz);
-            //     jdn = MathUtilities::DotProduct(dx, dy, dz, jnx, jny, jnz);
-            //     if(jdn < 0) {
-            //         i--;
-            //         continue;
-            //     }
-
-            //     cosTheta = jdn;
-            //     d = 1 + (nit*nit)*((cosTheta*cosTheta) - 1);
-            //     if((nit < 1) || (d >= 0)) {
-            //         inner = (nit*cosTheta) - std::sqrt(d);
-            //         tx = (nit*dx) + (inner*(-jnx));
-            //         ty = (nit*dy) + (inner*(-jny));
-            //         tz = (nit*dz) + (inner*(-jnz));
-            //         MathUtilities::Normalize(tx, ty, tz);
-
-            //         CollisionInfo* refractInfo = MainFunctions::FindCollision(collisionInfo->cpx, collisionInfo->cpy, collisionInfo->cpz, tx, ty, tz, sceneInfo, nitStack, DBL_MAX, depth + 1);
-            //         ColorInfo* refractColor = MainFunctions::CalcColor(tx, ty, tz, refractInfo, sceneInfo, nitStack, depth + 1);
-
-            //         rjt += refractColor->r;
-            //         gjt += refractColor->g;
-            //         bjt += refractColor->b;
-
-            //         delete refractInfo;
-            //         delete refractColor;
-            //     }
-            // }
-
-            // double invTrans = 1.0 / SUPER_SAMPLING_TRANSLUCENCY_AMP;
-            // r += (rjt * invTrans)*(mat->trans);
-            // g += (gjt * invTrans)*(mat->trans);
-            // b += (bjt * invTrans)*(mat->trans);
-            // nitStack->push(current);
-            // ^^^ potential new
-
-            //OLD
             cosTheta *= -1;
             double d = 1 + (nit*nit)*((cosTheta*cosTheta) - 1);
             if((nit < 1) || (d >= 0)) {
@@ -581,26 +530,26 @@ ColorInfo* MainFunctions::CalcColor(double dx, double dy, double dz, CollisionIn
     colors->g = g;
     colors->b = b;
 
+    delete tempMat;
     return colors;
 }
 
-bool MainFunctions::CheckInShadow(double ox, double oy, double oz, SceneInfo* sceneInfo, std::stack<double>* nitStack, int lightIndex) {
+bool MainFunctions::CheckInShadow(double ox, double oy, double oz, double destX, double destY, double destZ, SceneInfo* sceneInfo, std::stack<double>* nitStack, int lightIndex) {
 
     double ldx, ldy, ldz, lightDist;
-    if(sceneInfo->lights[lightIndex]->type == LightType::DIRECTIONAL) {
-        DirectionalLight* light = (DirectionalLight*)(sceneInfo->lights[lightIndex]);
+    GenericLight* originalLight = sceneInfo->lights[lightIndex];
+    if(originalLight->type == LightType::DIRECTIONAL) {
+        DirectionalLight* light = (DirectionalLight*)(originalLight);
 
         ldx = light->dx;
         ldy = light->dy;
         ldz = light->dz;
         lightDist = DBL_MAX;
 
-    } else if(sceneInfo->lights[lightIndex]->type == LightType::POINT) {
-        PointLight* light = (PointLight*)(sceneInfo->lights[lightIndex]);
-
-        ldx = ox - light->cx;
-        ldy = oy - light->cy;
-        ldz = oz - light->cz;
+    } else if(originalLight->type == LightType::POINT) {
+        ldx = ox - destX;
+        ldy = oy - destY;
+        ldz = oz - destZ;
 
         lightDist = std::sqrt((ldx*ldx) + (ldy*ldy) + (ldz*ldz));
         double invMag = 1 / lightDist;
@@ -608,6 +557,19 @@ bool MainFunctions::CheckInShadow(double ox, double oy, double oz, SceneInfo* sc
         ldx *= invMag;
         ldy *= invMag;
         ldz *= invMag;
+    } else if(originalLight->type == LightType::AREA) {
+        ldx = ox - destX;
+        ldy = oy - destY;
+        ldz = oz - destZ;
+
+        lightDist = std::sqrt((ldx*ldx) + (ldy*ldy) + (ldz*ldz));
+        double invMag = 1 / lightDist;
+
+        ldx *= invMag;
+        ldy *= invMag;
+        ldz *= invMag;
+
+        lightDist -= (RAY_EPSILON*2);
     } else {
         return false;
     }

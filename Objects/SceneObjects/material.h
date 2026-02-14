@@ -38,6 +38,7 @@ public:
     double ksosb = 0;
 
     void Print();
+    Material* Copy();
 };
 
 #endif

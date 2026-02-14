@@ -19,6 +19,9 @@ public:
     double nx = 0.0;
     double ny = 0.0;
     double nz = 0.0;
+
+    bool isLight = false;
+    bool isTextured = false;
 };
 
 #endif
